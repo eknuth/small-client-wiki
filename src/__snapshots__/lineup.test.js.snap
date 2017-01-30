@@ -1,0 +1,56 @@
+exports[`lineup Lineup renders correctly 1`] = `
+<div>
+  <div
+    className="lineup">
+    <Remote
+      instance={
+        Object {
+          "context": undefined,
+          "id": 44000000000,
+          "site": "ward.bay.wiki.org",
+          "slug": "active-journal",
+          "story": undefined,
+          "title": undefined,
+        }
+      } />
+    <Remote
+      instance={
+        Object {
+          "context": undefined,
+          "id": 45000000000,
+          "site": "forage.ward.fed.wiki.org",
+          "slug": "december-journal",
+          "story": undefined,
+          "title": undefined,
+        }
+      } />
+  </div>
+  <div
+    className="ready">
+    starting
+  </div>
+</div>
+`;
+
+exports[`lineup has initial state with default site 1`] = `
+<div>
+  <div
+    className="lineup">
+    <Remote
+      instance={
+        Object {
+          "context": undefined,
+          "id": 43000000000,
+          "site": "null",
+          "slug": undefined,
+          "story": undefined,
+          "title": undefined,
+        }
+      } />
+  </div>
+  <div
+    className="ready">
+    starting
+  </div>
+</div>
+`;

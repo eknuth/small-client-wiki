@@ -3,6 +3,10 @@ import $ from 'jquery'
 import { ResolvedText, InternalLink } from './text'
 import { Paragraph } from './plugins/paragraph'
 
+import Remote from './remote'
+import Resolution from './resolution'
+import Page from './page'
+
 export const Lineup = React.createClass({
   createInstance: function(context, site, slug, title, story) {
     return {
@@ -115,136 +119,6 @@ export const Lineup = React.createClass({
         </div>
   }
 })
-
-var Resolution = React.createClass({
-    resolve: function(context, slug, i) {
-      if (i >= context.length) {
-        return;
-      }
-
-      var site = context[i]
-      var source = 'http://' + site + '/' + slug + '.json'
-      var that = this;
-
-      var ammend = function(sum) {
-        return function(each) {
-          if (each.site != undefined && sum.indexOf(each.site) == -1) {
-            sum.push(each.site)
-          }
-        }
-      }
-
-      this.serverRequest = $.getJSON(source)
-        .done( function (result) {
-            var resolvedContext = [site]
-            var journal = result.journal || []
-            journal.reverse().forEach(ammend(resolvedContext))
-
-            var detail = { id: that.props.instance.id, context: resolvedContext,
-                           site: site, slug: that.props.instance.slug,
-                           title: result.title, story: result.story }
-            var event = new CustomEvent('pageAvailable', { detail: detail })
-            window.dispatchEvent(event)})
-        .fail(function (result) {
-            that.resolve(context, slug, ++i)
-      });
-    },
-    componentDidMount: function() {
-      this.resolve(this.props.instance.context, this.props.instance.slug, 0)
-    },
-    render: function(){
-      return <Page instance={this.props.instance} />
-    }
-})
-
-var Remote = React.createClass({
-    componentDidMount: function() {
-        var ammend = function(sum) {
-          return function(each) {
-            if (each.site != undefined && sum.indexOf(each.site) == -1) {
-              sum.push(each.site)
-            }
-          }
-        }
-
-        var source = 'http://' + this.props.instance.site + '/' + this.props.instance.slug + '.json'
-        this.serverRequest = $.getJSON(source)
-            .done( function (result) {
-              var context = [this.props.instance.site]
-              var journal = result.journal || []
-              journal.reverse().forEach(ammend(context))
-              var detail = { id: this.props.instance.id, context: context,
-                             site: this.props.instance.site, slug: this.props.instance.slug,
-                             title: result.title, story: result.story }
-              var event = new CustomEvent('pageAvailable', { detail: detail })
-              window.dispatchEvent(event)
-            }.bind(this));
-    },
-    componentWillUnmount: function() {
-        this.serverRequest.abort();
-    },
-    render: function(){
-        return <Page instance={this.props.instance} />
-    }
-});
-
-var Page = React.createClass({
-    getInitialState: function() {
-      return {
-        position: {
-          top: 0,
-          left: 0
-        }
-      }
-    },
-    handleTouchStart: function(event) {
-      var changedTouch = event.nativeEvent.changedTouches[0]
-
-      var newState = Object.assign({}, this.state)
-      newState.touch = {
-        original: Object.assign({}, this.state.position),
-        clientX: changedTouch.clientX,
-        clientY: changedTouch.clientY
-      }
-      this.setState(newState)
-    },
-    handleTouchMove: function(event) {
-      var changedTouch = event.nativeEvent.changedTouches[0]
-
-      var deltaX = changedTouch.clientX - this.state.touch.clientX
-      var deltaY = changedTouch.clientY - this.state.touch.clientY
-
-      var newState = Object.assign({}, this.state)
-      newState.position = {
-        top: this.state.touch.original.top + deltaY,
-        left: this.state.touch.original.left + deltaX
-      }
-      this.setState(newState)
-      event.preventDefault()
-    },
-    render: function(){
-        function item(instance) {
-          return function(item, index){
-            var I = plugins[item.type] || MissingPlugin
-            return (<I key={item.id} item={item} instance={instance} {...instance} />);
-          }
-        }
-
-        var items = this.props.instance.story || []
-        var context = this.props.instance.context || [this.props.instance.site]
-
-        return (
-            <div onTouchStart={this.handleTouchStart} onTouchMove={this.handleTouchMove} style={this.state.position} className="page">
-                <h2>
-                  <img style={{width: 18, marginRight: 5}} src={'http://' + this.props.instance.site + '/favicon.png'}  />
-                  {this.props.instance.title || this.props.instance.slug}
-                </h2>
-                {items.map(item(this.props.instance))}
-                <Footer details={[context.join(" ⇒ ")]} />
-            </div>
-        );
-    }
-});
 
 var Image = React.createClass({
   render: function() {
@@ -369,13 +243,66 @@ var plugins = {
   "video": Video
 }
 
-var Footer = React.createClass({
-    render: function(){
-        function li (detail, index){ return (<li key={index}>{detail}</li>); }
-        return (
-          <div>
-              {this.props.details.map(li)}
-          </div>
-        );
+var PlainText = React.createClass({
+  render: function() {
+    return <span>{this.props.text}</span>
+  }
+})
+
+var ExternalLink = React.createClass({
+  render: function() {
+    var m = this.props.text.match(/\[(https?:.*?) (.*?)\]/)
+    return <a href={m[1]}>{m[2]} <img src="external-link-ltr-icon.png" /></a>
+  }
+})
+
+var MarkdownText = React.createClass({
+    rawMarkup: function() {
+        var context = this.props.context
+        var wikiLinks = function () {
+            return [
+                {
+                    type:   'lang',
+                    regex:  /\[(https?:.*?) (.*?)\]/g,
+                    replace: function (match, url, linkText) {
+                        return '<a href="' + url + '" target="_blank">' + linkText + ' <img src="external-link-ltr-icon.png" /></a>'
+                    }
+                },
+                {
+                    type:   'lang',
+                    regex:  /\[\[(.*?)\]\]/g,
+                    replace: function (match, linkText) {
+                        var asSlug = function(title) {
+                            return title.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase()
+                        }
+                        var contextTitle = context.join(" ⇒ ")
+                        return '<a href="#" class="internal" title="' + contextTitle + '" data-page-name="' + asSlug(linkText) + '">' + linkText + '</a>'
+                    }
+                }
+            ]
+        }
+        
+        var converter = new showdown.Converter({
+            headerLevelStart: 3,
+            tasklists: true,
+            extensions: [ wikiLinks ]
+        })
+        var rawMarkup = converter.makeHtml(this.props.text)
+        return { __html: rawMarkup}
+    },
+    
+    onClick: function(e) {
+        var target = e.target
+        if (target.tagName.toLowerCase() === 'a' && target.className.toLowerCase() === 'internal') {
+            var detail = { context: this.props.context, instance: this.props.instance, title: target.getAttribute('title'), slug: target.getAttribute('data-page-name') }
+            var eventType = e.nativeEvent.shiftKey ? 'appendToLineup' : 'replaceInLineup'
+            var event = new CustomEvent(eventType, { detail: detail })
+            window.dispatchEvent(event)
+            e.preventDefault()
+        }
+    },
+
+    render: function() {
+        return <span onClick={this.onClick} dangerouslySetInnerHTML={this.rawMarkup()} />
     }
-});
+})
