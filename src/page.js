@@ -1,5 +1,31 @@
 import React from 'react'
 
+import Markdown from './plugins/markdown'
+import PageFold from './plugins/page-fold'
+import Paragraph from './plugins/paragraph'
+import Reference from './plugins/reference'
+import Video from './plugins/video'
+
+
+var MissingPlugin = React.createClass({
+  render: function() {
+    return (
+      <div className="item missing">
+        Missing '{this.props.item.type}' plugin
+      </div>
+    )
+  }
+})
+
+var plugins = {
+  "image": Image,
+  "markdown": Markdown,
+  "pagefold": PageFold,
+  "paragraph": Paragraph,
+  "reference": Reference,
+  "video": Video
+}
+
 var Footer = React.createClass({
     render: function(){
         function li (detail, index){ return (<li key={index}>{detail}</li>); }

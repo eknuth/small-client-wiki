@@ -1,9 +1,9 @@
 import React from 'react'
 import renderer from 'react-test-renderer'
 
-import Remote from './remote'
+import Remote from '../remote'
 
-jest.mock('./page', () => 'Page')
+jest.mock('../page', () => 'Page')
 
 describe('Remote', () => {
   const instance = {

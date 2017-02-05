@@ -1,9 +1,9 @@
 import React from 'react'
 import renderer from 'react-test-renderer'
 
-import { Lineup } from './lineup'
+import { Lineup } from '../lineup'
 
-jest.mock('./remote', () => 'Remote')
+jest.mock('../remote', () => 'Remote')
 
 // page id comes from a random number, mock it
 let idStart = 42

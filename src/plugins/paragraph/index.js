@@ -1,7 +1,7 @@
 import React from 'react'
 import { ResolvedText } from '../../text'
 
-export const Paragraph = React.createClass({
+export default React.createClass({
     render: function(){
       return (
             <div className="item" className={this.props.item.type}>
