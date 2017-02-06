@@ -7,7 +7,7 @@ jest.mock('../remote', () => 'Remote')
 
 // page id comes from a random number, mock it
 let idStart = 42
-Math.random = jest.fn(() => idStart++);
+Math.random = jest.fn(() => idStart++)
 
 describe ('lineup', () => {
   beforeEach (() => window.location.hash = '')
